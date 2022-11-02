@@ -28,12 +28,13 @@ class CodeParser:
     def check_brackets_pairing(self):  # проверяется просто парность скобок по их количеству, а не правильность их расстановки
         open_brackets = ["[(]", "[\[]", "[{]"]
         close_brackets = ["[)]", "[\]]", "[}]"]
+        brackets_type = ["(", "[", "{"]
         report_list = []
         for i in range(len(open_brackets)):
             m1 = re.findall(open_brackets[i], self.__string)
             m2 = re.findall(close_brackets[i], self.__string)
             if not ((m1 is None and m2 is None) or (len(m1) == len(m2))):
-                report_list.append(f"{open_brackets[i]}:{abs(len(m1) - len(m2))}")
+                report_list.append(f"\"{brackets_type[i]}\":{abs(len(m1) - len(m2))}")
         return report_list
 
 

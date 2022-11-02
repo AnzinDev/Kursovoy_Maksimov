@@ -1,43 +1,85 @@
 import tkinter as tk
+import os
 from tkinter import filedialog
+from tkinter import messagebox as msgbox
 from tkinter.ttk import Checkbutton
-import parser
 
+import code_parser as parser
+import reporter as rp
 
 def make_check():
     make_report_button.configure(state="disable")
-    file = filedialog.askopenfile(initialdir="/", title="Select image", filetypes=(("CPP files", "*.cpp"), (("HPP files", "*.hpp")), ("All files", "*.*")))
+    file = filedialog.askopenfile(initialdir="/", title="Select image", filetypes=(("CPP files", "*.cpp"), (
+    "HPP files", "*.hpp"), ("All files", "*.*")))
     if file is None:
         return
     else:
         file_path = file.name
+        global file_name
+        file_name = os.path.basename(file_path).split('.')[0]
     try:
         file = open(file_path, "r")
         text_file = file.read()
         parser.get_string(text_file, 1)
-        unused = []
-        inc_n = []
-        inc_d = []
-        brackets = []
+        global errors
         if unused_var.get() == 1:
-            unused = parser.find_unused_names()
+            errors[UNUSED_TYPE] = parser.find_unused_names()
         if incorrect_n_var.get() == 1:
-            inc_n = parser.find_incorrect_names()
+            errors[INC_N_TYPE] = parser.find_incorrect_names()
         if incorrect_d_var.get() == 1:
-            inc_d = parser.find_incorrect_directives()
+            errors[INC_D_TYPES] = parser.find_incorrect_directives()
         if brackets_var.get() == 1:
-            brackets = parser.check_brackets_pairing()
-        print(unused + inc_n + inc_d + brackets)
+            errors[UNP_BRACKETS_TYPE] = parser.check_brackets_pairing()
         make_report_button.configure(state="normal")
     except AttributeError:
         print("File error")
 
 
 def make_report():
-    print("report")
+    reporter.create_book()
+    reporter.insert_value("A1", value=f"Отчет по файлу исходного кода {file_name}")
+    reporter.insert_value("A2", value="Тип")
+    reporter.insert_value("B2", value="Содержание")
+    reporter.insert_value("C2", value="Статус")
+    global errors
+    item_num = 3
+    for item in errors[UNUSED_TYPE]:
+        reporter.insert_value("A" + str(item_num), value=UNUSED_TYPE)
+        reporter.insert_value("B" + str(item_num), value=item)
+        reporter.insert_value("C" + str(item_num), value="Обнаружена")
+        item_num += 1
+    for item in errors[INC_N_TYPE]:
+        reporter.insert_value("A" + str(item_num), value=INC_N_TYPE)
+        reporter.insert_value("B" + str(item_num), value=item)
+        reporter.insert_value("C" + str(item_num), value="Обнаружена")
+        item_num += 1
+    for item in errors[INC_D_TYPES]:
+        reporter.insert_value("A" + str(item_num), value=INC_D_TYPES)
+        reporter.insert_value("B" + str(item_num), value=item)
+        reporter.insert_value("C" + str(item_num), value="Обнаружена")
+        item_num += 1
+    for item in errors[UNP_BRACKETS_TYPE]:
+        reporter.insert_value("A" + str(item_num), value=UNP_BRACKETS_TYPE)
+        reporter.insert_value("B" + str(item_num), value=item)
+        reporter.insert_value("C" + str(item_num), value="Обнаружена")
+        item_num += 1
+    reporter.save_book(file_name, f"D:\\")
+    msgbox.showinfo("Информация", "Отчёт создан")
 
+#глобальные переменные
+file_name = ""
+UNUSED_TYPE = "unused_name"
+INC_N_TYPE = "incorrect_name"
+INC_D_TYPES = "incorrect_directive"
+UNP_BRACKETS_TYPE = "unparentness_brackets"
 
+#объявление переменных для парсера
 parser = parser.CodeParser()
+errors = {UNUSED_TYPE: [], INC_N_TYPE: [], INC_D_TYPES: [], UNP_BRACKETS_TYPE: []}
+#объявление переменных для создателя отчетов
+reporter = rp.ExcelReporter()
+
+#создание окна
 window = tk.Tk()
 window.title("Code Parser")
 width = 260
@@ -72,3 +114,11 @@ browse_button.grid(column=1, row=5)
 make_report_button.grid(columnspan=2, row=6)
 
 window.mainloop()
+
+
+
+
+
+
+
+
