@@ -1,11 +1,13 @@
 import os
 from tkinter import filedialog
 from tkinter import messagebox as msgbox
+import datetime as dt
 
 # импорт пакетов
 import code_parser as parser
 import reporter as rp
 import window as wm
+import data_base_interface as dbi
 
 
 # функции событий оконного приложения
@@ -35,9 +37,34 @@ def make_check():
                 errors_type_content[INCORRECT_DIRECTIVE_TYPE] = parser.find_incorrect_directives()
             if root.brackets_var.get() == 1:
                 errors_type_content[UNPAIRED_BRACKETS_TYPE] = parser.check_brackets_pairing()
-            msgbox.showinfo("Информация", "Проверка выполнена")  # сообщение о выполненной проверке
-            # тут серия инсертов в БД для всех найденных ошибок по программе
 
+            list_of_keys = db.get_program_key(prog_name=file_name)
+            if not list_of_keys:
+                db.insert_into_prog_name(name=file_name)
+                list_of_keys = db.get_program_key(file_name)
+            db.current_prog_key = (list_of_keys[0])[
+                0]  # по логике должно вернуть назначенный ключ новому файлу, либо если он уже был, вернуть существующий
+
+            # теперь надо перебрать словарь с ошибками
+            for error_type in errors_type_content:
+                errors = errors_type_content[error_type]
+                for error in errors:
+                    db.insert_into_main(
+                        f"{db.current_prog_key}, {error_key_type[error_type]}, {error_key_state[error_type]}, {error_key_importance[error_type]}, '{error}'")
+
+            # теперь надо сделать запись в таблицу динамики
+            current_timestamp = (dt.datetime.now()).timestamp()
+            lenghts = {UNUSED_NAME_TYPE: 0, INCORRECT_NAME_TYPE: 0, INCORRECT_DIRECTIVE_TYPE: 0,
+                       UNPAIRED_BRACKETS_TYPE: 0}
+            for error_type in lenghts:
+                lenghts[error_type] = len(errors_type_content[error_type])
+            db.insert_into_history(
+                f"{db.current_prog_key}, {lenghts[UNUSED_NAME_TYPE]}, {lenghts[INCORRECT_NAME_TYPE]}, {lenghts[INCORRECT_DIRECTIVE_TYPE]}, {lenghts[UNPAIRED_BRACKETS_TYPE]}, {current_timestamp}"
+            )  # а тут проходиться по словарю просто добавляя числа длин по его типу
+
+            msgbox.showinfo("Информация",
+                            "Проверка выполнена, база данных обновлена")  # сообщение о выполненной проверке
+            # добавление данных об ошибках есть
             root.make_report_button.configure(state="normal")  # активация кнопки создания отчета
         except AttributeError:
             print("File error")
@@ -105,6 +132,9 @@ error_key_state = {FIXED: 1, UNFIXED: 2, PENDING: 3}  # словарь соот�
 error_key_importance = {IMPORTANT: 1, NOT_IMPORTANT: 2}  # словарь соответствия таблице важности ошибок
 # объявление переменных для создателя отчетов
 reporter = rp.ExcelReporter()  # создание экземпляра класса создателя отчетов
+
+# объявление переменных для работы с БД
+db = dbi.PostgreInterface('test', 'postgres', '1', '127.0.0.1', '5432')
 
 # экземпляр класса окна
 root = wm.WindowManager(window_name="Code Parser", window_width=260, window_height=200)  # объявление окна
