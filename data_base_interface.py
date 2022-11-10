@@ -56,7 +56,7 @@ class PostgreInterface:
                 "VALUES(" + val + ")"
         self.__insert_data(query)  # подумать над названиями атрибутов
 
-    def select_data(self, query):  # возвращает иннер селект из мейна
+    def __select_data(self, query):  # возвращает иннер селект из мейна
         con = self.connection()
         cur = con.cursor()
         cur.execute(
@@ -74,7 +74,7 @@ class PostgreInterface:
                 'INNER JOIN error_stat ON P.error_stat = error_stat."key" ' \
                 'INNER JOIN error_importance ON P.error_importance = error_importance."key" ' \
                 'WHERE t.name = ' + prog_name + ' '
-        return self.select_data(query)
+        return self.__select_data(query)
 
     def select_all_from_main(self):  # возварщает данные по всем программам
         # селект из main сгруппированный по названию программы
@@ -85,13 +85,13 @@ class PostgreInterface:
                 'INNER JOIN error_stat ON P.error_stat = error_stat."key" ' \
                 'INNER JOIN error_importance ON P.error_importance = error_importance."key" ' \
                 'ORDER BY name'
-        return self.select_data(query)
+        return self.__select_data(query)
 
     def get_program_key(self, prog_name):  # возвращает из прог нейм номер программы по ее названию
         query = "SELECT key " \
                 "FROM prog_name " \
                 "WHERE name = '" + prog_name + "'"
-        return self.select_data(query)  # тут мб как то обработать, чтобы возвращало сразу число, а не кортеж
+        return self.__select_data(query)  # тут мб как то обработать, чтобы возвращало сразу число, а не кортеж
 
     def select_from_history(self,
                             prog_name):  # возвращает данные по определенной программе подается в виде айди (цифра)
@@ -100,7 +100,7 @@ class PostgreInterface:
                 'INNER JOIN prog_name ON history.prog_name = prog_name."key" ' \
                 'WHERE prog_name = ' + prog_name + ' ' \
                                                    'ORDER BY time ASC'
-        return self.select_data(query)
+        return self.__select_data(query)
 
     def select_all(self, table_name):  # пассивный метод (не используется)
         con = self.connection()

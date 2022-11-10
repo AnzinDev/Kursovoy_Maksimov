@@ -51,7 +51,9 @@ def make_check():
                 for error in errors:
                     db.insert_into_main(
                         f"{db.current_prog_key}, {error_key_type[error_type]}, {error_key_state[error_type]}, {error_key_importance[error_type]}, '{error}'")
-
+            # в чем теперь смысл мейн таблицы, нужно придумать логику обновления статуса найденной ошибки, раз мы решили, что идем до первой ошибки, это сделать будет трудно
+            # потому что если перед ней появится еще ошибка при повторной проверке, то как понять, что с прошлой стало, или если поменялось содержимое той же ошибки, запись о старой останется навсегда нерешенной
+            # в то же время, для динамики нужно количество ошибок и его изменение, поэтому туда я засовываю число всех ошибок
             # теперь надо сделать запись в таблицу динамики
             current_timestamp = (dt.datetime.now()).timestamp()
             lenghts = {UNUSED_NAME_TYPE: 0, INCORRECT_NAME_TYPE: 0, INCORRECT_DIRECTIVE_TYPE: 0,
@@ -64,41 +66,42 @@ def make_check():
 
             msgbox.showinfo("Информация",
                             "Проверка выполнена, база данных обновлена")  # сообщение о выполненной проверке
-            # добавление данных об ошибках есть
+
             root.make_report_button.configure(state="normal")  # активация кнопки создания отчета
         except AttributeError:
             print("File error")
 
 
 def make_report():
-    reporter.create_book(file_name=file_name)  # создание новой книги
+    reporter.create_book(file_name)  # создание новой книги
 
-    # запрос к БД по данным для текущей проги
+    error_list = db.select_unique_from_main(db.current_prog_key)
+    row_num = 3
+    for error in error_list:
+        reporter.insert_value("A" + str(row_num), value=error[2])
+        reporter.insert_value("B" + str(row_num), value=error[5])
+        reporter.insert_value("C" + str(row_num), value=error[3])
+        reporter.insert_value("D" + str(row_num), value=error[4])
+        row_num += 1
 
-    global errors_type_content  # тут потом будет умное, пока что не будет
-    item_num = 3
-    for item in errors_type_content[UNUSED_NAME_TYPE]:
-        reporter.insert_value("A" + str(item_num), value=UNUSED_NAME_TYPE)
-        reporter.insert_value("B" + str(item_num), value=item)
-        reporter.insert_value("C" + str(item_num), value="Обнаружена")
-        item_num += 1
-    for item in errors_type_content[INCORRECT_NAME_TYPE]:
-        reporter.insert_value("A" + str(item_num), value=INCORRECT_NAME_TYPE)
-        reporter.insert_value("B" + str(item_num), value=item)
-        reporter.insert_value("C" + str(item_num), value="Обнаружена")
-        item_num += 1
-    for item in errors_type_content[INCORRECT_DIRECTIVE_TYPE]:
-        reporter.insert_value("A" + str(item_num), value=INCORRECT_DIRECTIVE_TYPE)
-        reporter.insert_value("B" + str(item_num), value=item)
-        reporter.insert_value("C" + str(item_num), value="Обнаружена")
-        item_num += 1
-    for item in errors_type_content[UNPAIRED_BRACKETS_TYPE]:
-        reporter.insert_value("A" + str(item_num), value=UNPAIRED_BRACKETS_TYPE)
-        reporter.insert_value("B" + str(item_num), value=item)
-        reporter.insert_value("C" + str(item_num), value="Обнаружена")
-        item_num += 1
-    reporter.save_book(file_name, f"D:\\")  # сохранение созданного отчета
-    msgbox.showinfo("Информация", "Отчёт создан")  # сообщение о сохранении отчета
+    history_list = db.select_from_history(db.current_prog_key)
+    row_num = 3
+    for stamp in history_list:
+        reporter.insert_value("F" + str(row_num), value=stamp[2])
+        reporter.insert_value("G" + str(row_num), value=stamp[3])
+        reporter.insert_value("H" + str(row_num), value=stamp[4])
+        reporter.insert_value("I" + str(row_num), value=stamp[5])
+        timestamp = dt.date.fromtimestamp(stamp[6])  # пока только дата
+        reporter.insert_value("J" + str(row_num), value=timestamp)
+        row_num += 1
+    max_row = len(history_list) + 1
+    reporter.place_linechart(chart_cell=("F" + str(max_row + 1)), min_col=6, max_col=10, min_row=2, max_row=max_row,
+                             chart_name="Динамика", x_axis_name="Время", y_axis_name="Кол-во ошибок")
+
+    base_path = f"D:\\"
+    reporter.save_book(file_name, base_path)  # сохранение созданного отчета
+    msgbox.showinfo("Информация",
+                    "Отчёт создан и сохранен на диск\nпо пути \"" + base_path + "\"")  # сообщение о сохранении отчета
 
 
 def on_close():  # событие закрытия программы, здесь нужно будет отпустить все открытые файлы и соединения и закрыть программу
