@@ -34,8 +34,8 @@ class ExcelReporter:
         chart = LineChart()
         chart.add_data(data, titles_from_data=True)
         chart.title = chart_name
-        chart.x_axis = x_axis_name
-        chart.y_axis = y_axis_name
+        chart.x_axis.title = x_axis_name
+        chart.y_axis.title = y_axis_name
         self.__active_sheet.add_chart(chart, chart_cell)
 
 

@@ -5,6 +5,7 @@ from psycopg2 import Error
 class PostgreInterface:
 
     current_prog_key = None
+    current_prog_name = None
 
     def __init__(self, database, user, password, host, port):
         self.database = database
@@ -27,7 +28,6 @@ class PostgreInterface:
             print("Connection failed, error: ", error)
         finally:
             if self.con:
-                print("Database opened successfully")
                 return self.con
 
     def __insert_data(self, query):  # attr - список атрибутов, values - строка значений
@@ -36,22 +36,21 @@ class PostgreInterface:
         cur.execute(  # выполенение запроса к бд
             query
         )
-        con.commit()  # коммитит изменения в бд
-        print("Record inserted successfully")
+        con.commit()  # коммитит изменения в б
         cur.close()  # закрывает общение с бд
 
     # (prog_name, error_type, error_stat, error_importance, error_content)
     def insert_into_main(self, val):  # инсерт в мейн
-        query = "INSERT INTO main (prog_name, error_type, error_stat, error_importance, error_content) " \
+        query = "INSERT INTO public.main (prog_name, error_type, error_stat, error_importance, error_content) " \
                 "VALUES(" + val + ")"
         self.__insert_data(query)
 
     def insert_into_prog_name(self, name):  # инсерт в прог нейм
-        query = "INSERT INTO prog_name (name) VALUES('" + name + "')"
+        query = "INSERT INTO public.prog_name (name) VALUES('" + name + "')"
         self.__insert_data(query)
 
     def insert_into_history(self, val):  # инсерт в хистори. подавать строку вида "name, 8, 5, 0, 8, time"
-        query = "INSERT INTO history " \
+        query = "INSERT INTO public.history " \
                 "(prog_name, unused_name, incorrect_name, incorrect_directive, unpaired_brackets, time) " \
                 "VALUES(" + val + ")"
         self.__insert_data(query)  # подумать над названиями атрибутов
@@ -88,9 +87,9 @@ class PostgreInterface:
         return self.__select_data(query)
 
     def get_program_key(self, prog_name):  # возвращает из прог нейм номер программы по ее названию
-        query = "SELECT key " \
-                "FROM prog_name " \
-                "WHERE name = '" + prog_name + "'"
+        query = "SELECT \"key\" " \
+                "FROM public.prog_name " \
+                "WHERE \"name\" = '" + prog_name + "'"
         return self.__select_data(query)  # тут мб как то обработать, чтобы возвращало сразу число, а не кортеж
 
     def select_from_history(self,
@@ -98,7 +97,7 @@ class PostgreInterface:
         query = 'SELECT history.key, prog_name.name, unused_name, incorrect_name, incorrect_directive, unpaired_brackets, time ' \
                 'FROM history ' \
                 'INNER JOIN prog_name ON history.prog_name = prog_name."key" ' \
-                'WHERE prog_name = ' + prog_name + ' ' \
+                'WHERE prog_name = ' + str(prog_name) + ' ' \
                                                    'ORDER BY time ASC'
         return self.__select_data(query)
 
@@ -117,7 +116,6 @@ class PostgreInterface:
                 print(row[i], end=' ')
             print()
 
-        print("Selection done successfully")
         con.close()
 
     def delete_data(self, prog_name):  # удаляем данные из мейн, а после из прог нейм
@@ -128,7 +126,6 @@ class PostgreInterface:
                                                                         "DELETE FROM prog_name WHERE " + prog_name + " = " + prog_name + ""
         )
         con.commit()
-        print("Delete done successfully")
         con.close()
 
 

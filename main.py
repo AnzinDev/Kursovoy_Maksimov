@@ -37,20 +37,23 @@ def make_check():
                 errors_type_content[INCORRECT_DIRECTIVE_TYPE] = parser.find_incorrect_directives()
             if root.brackets_var.get() == 1:
                 errors_type_content[UNPAIRED_BRACKETS_TYPE] = parser.check_brackets_pairing()
-
+            db.current_prog_name = file_name
             list_of_keys = db.get_program_key(prog_name=file_name)
             if not list_of_keys:
                 db.insert_into_prog_name(name=file_name)
                 list_of_keys = db.get_program_key(file_name)
-            db.current_prog_key = (list_of_keys[0])[
-                0]  # по логике должно вернуть назначенный ключ новому файлу, либо если он уже был, вернуть существующий
+            db.current_prog_key = (list_of_keys[0])[0]
+            # по логике должно вернуть назначенный ключ новому файлу, либо если он уже был, вернуть существующий
 
+            global error_key_type
+            global error_key_state
+            global error_key_importance
             # теперь надо перебрать словарь с ошибками
             for error_type in errors_type_content:
                 errors = errors_type_content[error_type]
                 for error in errors:
-                    db.insert_into_main(
-                        f"{db.current_prog_key}, {error_key_type[error_type]}, {error_key_state[error_type]}, {error_key_importance[error_type]}, '{error}'")
+                    string_ = f"{db.current_prog_key}, {error_key_type[error_type]}, {error_key_state[UNFIXED]}, {get_importance_of_error_type(error_type)}, \'{error}\'"
+                    db.insert_into_main(string_)
             # в чем теперь смысл мейн таблицы, нужно придумать логику обновления статуса найденной ошибки, раз мы решили, что идем до первой ошибки, это сделать будет трудно
             # потому что если перед ней появится еще ошибка при повторной проверке, то как понять, что с прошлой стало, или если поменялось содержимое той же ошибки, запись о старой останется навсегда нерешенной
             # в то же время, для динамики нужно количество ошибок и его изменение, поэтому туда я засовываю число всех ошибок
@@ -68,14 +71,14 @@ def make_check():
                             "Проверка выполнена, база данных обновлена")  # сообщение о выполненной проверке
 
             root.make_report_button.configure(state="normal")  # активация кнопки создания отчета
-        except AttributeError:
-            print("File error")
+        except Exception as e:
+            print("Error " + e)
 
 
 def make_report():
     reporter.create_book(file_name)  # создание новой книги
-
-    error_list = db.select_unique_from_main(db.current_prog_key)
+    # нужно обрезать пробелы в конце строк возвращаемых БД
+    error_list = db.select_unique_from_main(db.current_prog_name)
     row_num = 3
     for error in error_list:
         reporter.insert_value("A" + str(row_num), value=error[2])
@@ -94,8 +97,8 @@ def make_report():
         timestamp = dt.date.fromtimestamp(stamp[6])  # пока только дата
         reporter.insert_value("J" + str(row_num), value=timestamp)
         row_num += 1
-    max_row = len(history_list) + 1
-    reporter.place_linechart(chart_cell=("F" + str(max_row + 1)), min_col=6, max_col=10, min_row=2, max_row=max_row,
+    max_row = len(history_list) + 2
+    reporter.place_linechart(chart_cell=("F" + str(max_row + 1)), min_col=6, max_col=9, min_row=2, max_row=max_row,
                              chart_name="Динамика", x_axis_name="Время", y_axis_name="Кол-во ошибок")
 
     base_path = f"D:\\"
@@ -107,6 +110,13 @@ def make_report():
 def on_close():  # событие закрытия программы, здесь нужно будет отпустить все открытые файлы и соединения и закрыть программу
     print("Program closed")
     root.close_window()
+
+
+def get_importance_of_error_type(error_type):
+    if error_type != UNUSED_NAME_TYPE:
+        return error_key_importance[IMPORTANT]
+    else:
+        return error_key_importance[UNIMPORTANT]
 
 
 # точка входа в программу
@@ -123,7 +133,7 @@ UNFIXED = "unfixed"
 PENDING = "pending"
 
 IMPORTANT = "important"  # важности ошибок
-NOT_IMPORTANT = "not important"
+UNIMPORTANT = "not important"
 
 # объявление переменных для парсера
 parser = parser.CodeParser()  # создание экземпляра класса парсера
@@ -132,12 +142,12 @@ errors_type_content = {UNUSED_NAME_TYPE: [], INCORRECT_NAME_TYPE: [], INCORRECT_
 error_key_type = {UNUSED_NAME_TYPE: 1, INCORRECT_NAME_TYPE: 2, INCORRECT_DIRECTIVE_TYPE: 3,
                   UNPAIRED_BRACKETS_TYPE: 4}  # словарь соответствия таблице типов ошибок
 error_key_state = {FIXED: 1, UNFIXED: 2, PENDING: 3}  # словарь соответствия таблице статусов ошибок
-error_key_importance = {IMPORTANT: 1, NOT_IMPORTANT: 2}  # словарь соответствия таблице важности ошибок
+error_key_importance = {IMPORTANT: 1, UNIMPORTANT: 2}  # словарь соответствия таблице важности ошибок
 # объявление переменных для создателя отчетов
 reporter = rp.ExcelReporter()  # создание экземпляра класса создателя отчетов
 
 # объявление переменных для работы с БД
-db = dbi.PostgreInterface('test', 'postgres', '1', '127.0.0.1', '5432')
+db = dbi.PostgreInterface('parser', 'postgres', '1', '127.0.0.1', '5432')
 
 # экземпляр класса окна
 root = wm.WindowManager(window_name="Code Parser", window_width=260, window_height=200)  # объявление окна
