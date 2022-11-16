@@ -1,5 +1,6 @@
 import openpyxl as ex
-from openpyxl.chart import (LineChart, Reference)
+from openpyxl.chart import (LineChart, Reference, Series)
+from openpyxl.chart.axis import DateAxis
 import datetime as dt
 
 
@@ -30,14 +31,22 @@ class ExcelReporter:
         self.report_book.save(f"{base_path}Отчёт {prg_name} {curr_data}.xlsx")
 
     def place_linechart(self, chart_cell, min_col, max_col, min_row, max_row, chart_name, x_axis_name, y_axis_name):
-        data = Reference(worksheet=self.__active_sheet, min_col=min_col, max_col=max_col, min_row=min_row, max_row=max_row)
+        data = Reference(worksheet=self.__active_sheet, min_col=min_col, max_col=max_col, min_row=min_row,
+                         max_row=max_row)
+        dates = Reference(worksheet=self.__active_sheet, min_col=max_col + 1, min_row=min_row + 1, max_row=max_row)
         chart = LineChart()
         chart.add_data(data, titles_from_data=True)
+        chart.set_categories(dates)
         chart.title = chart_name
         chart.x_axis.title = x_axis_name
+        chart.x_axis = DateAxis(crossAx=100)
+        chart.x_axis.number_format = 'd-mmm-yy'
+        chart.x_axis.majorTimeUnit = "days"
         chart.y_axis.title = y_axis_name
+        chart.y_axis.crossAx = 500
+        chart.y_axis.scaling.min = -1
+        chart.style = 12
         self.__active_sheet.add_chart(chart, chart_cell)
-
 
     def __write_header(self, file_name):
         self.insert_value("A1", value=f"Отчет по файлу исходного кода")

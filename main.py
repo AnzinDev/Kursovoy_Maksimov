@@ -81,10 +81,10 @@ def make_report():
     error_list = db.select_unique_from_main(db.current_prog_name)
     row_num = 3
     for error in error_list:
-        reporter.insert_value("A" + str(row_num), value=error[2])
-        reporter.insert_value("B" + str(row_num), value=error[5])
-        reporter.insert_value("C" + str(row_num), value=error[3])
-        reporter.insert_value("D" + str(row_num), value=error[4])
+        reporter.insert_value("A" + str(row_num), value=(error[2]).rstrip())
+        reporter.insert_value("B" + str(row_num), value=(error[5]).rstrip())
+        reporter.insert_value("C" + str(row_num), value=(error[3]).rstrip())
+        reporter.insert_value("D" + str(row_num), value=(error[4]).rstrip())
         row_num += 1
 
     history_list = db.select_from_history(db.current_prog_key)
@@ -94,14 +94,14 @@ def make_report():
         reporter.insert_value("G" + str(row_num), value=stamp[3])
         reporter.insert_value("H" + str(row_num), value=stamp[4])
         reporter.insert_value("I" + str(row_num), value=stamp[5])
-        timestamp = dt.date.fromtimestamp(stamp[6])  # пока только дата
+        timestamp = dt.datetime.fromtimestamp(stamp[6]).strftime("%Y-%m-%dT%H:%M:%S")
         reporter.insert_value("J" + str(row_num), value=timestamp)
         row_num += 1
     max_row = len(history_list) + 2
     reporter.place_linechart(chart_cell=("F" + str(max_row + 1)), min_col=6, max_col=9, min_row=2, max_row=max_row,
                              chart_name="Динамика", x_axis_name="Время", y_axis_name="Кол-во ошибок")
 
-    base_path = f"D:\\"
+    base_path = filedialog.askdirectory(title="Выбрать папку сохранения", initialdir="\\", mustexist=True)
     reporter.save_book(file_name, base_path)  # сохранение созданного отчета
     msgbox.showinfo("Информация",
                     "Отчёт создан и сохранен на диск\nпо пути \"" + base_path + "\"")  # сообщение о сохранении отчета
