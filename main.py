@@ -13,11 +13,14 @@ import data_base_interface as dbi
 # функции событий оконного приложения
 def make_check():
     root.make_report_button.configure(state="disable")  # деактивация кнопки создания отчета
-    file = filedialog.askopenfile(initialdir="/", title="Select image", filetypes=(("CPP files", "*.cpp"), (
+    file = filedialog.askopenfile(initialdir="/", title="Выберите файл исходного кода", filetypes=(("CPP files", "*.cpp"), (
         "HPP files", "*.hpp"), ("All files", "*.*")))  # файловый диалог
     if file is None:
         return  # если файл не был выбран, выходим из функции
     else:
+        if not file.name.lower().endswith(('.cpp', '.hpp')):
+            msgbox.showerror(title="Ошибка", message="Некорректный формат файла")
+            return
         file_path = file.name
         global file_name
         file_name = os.path.basename(file_path).split('.')[0]  # сохранение имени текущей программы из имени файла
@@ -39,6 +42,9 @@ def make_check():
                 errors_type_content[UNPAIRED_BRACKETS_TYPE] = parser.check_brackets_pairing()
             db.current_prog_name = file_name
             list_of_keys = db.get_program_key(prog_name=file_name)
+            if list_of_keys is None:
+                msgbox.showerror(title="Ошибка", message="Не удалось подключиться к базе данных")
+                return None
             if not list_of_keys:
                 db.insert_into_prog_name(name=file_name)
                 list_of_keys = db.get_program_key(file_name)
@@ -98,7 +104,10 @@ def make_report():
         reporter.insert_value("J" + str(row_num), value=timestamp)
         row_num += 1
     max_row = len(history_list) + 2
-    reporter.place_linechart(chart_cell=("F" + str(max_row + 1)), min_col=6, max_col=9, min_row=2, max_row=max_row,
+    if len(history_list) <= 1:
+        reporter.insert_value("F" + str(max_row + 1), value="График строится от двух записей")
+    else:
+        reporter.place_linechart(chart_cell=("F" + str(max_row + 1)), min_col=6, max_col=9, min_row=2, max_row=max_row,
                              chart_name="Динамика", x_axis_name="Время", y_axis_name="Кол-во ошибок")
 
     base_path = filedialog.askdirectory(title="Выбрать папку сохранения", initialdir="\\", mustexist=True)

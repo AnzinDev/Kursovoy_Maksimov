@@ -25,13 +25,17 @@ class PostgreInterface:
                 port=self.port  # port
             )
         except (Exception, Error) as error:
-            print("Connection failed, error: ", error)
+            print("Не удалось подключиться к базе данных:\n", error)
         finally:
             if self.con:
                 return self.con
+            else:
+                return None
 
     def __insert_data(self, query):  # attr - список атрибутов, values - строка значений
         con = self.connection()
+        if con is None:
+            return None
         cur = con.cursor()
         cur.execute(  # выполенение запроса к бд
             query
@@ -57,6 +61,8 @@ class PostgreInterface:
 
     def __select_data(self, query):  # возвращает иннер селект из мейна
         con = self.connection()
+        if con is None:
+            return None
         cur = con.cursor()
         cur.execute(
             query
@@ -103,8 +109,9 @@ class PostgreInterface:
 
     def select_all(self, table_name):  # пассивный метод (не используется)
         con = self.connection()
+        if con is None:
+            return None
         cur = con.cursor()
-
         cur.execute(
             "SELECT  FROM " + table_name
         )
@@ -120,6 +127,8 @@ class PostgreInterface:
 
     def delete_data(self, prog_name):  # удаляем данные из мейн, а после из прог нейм
         con = self.connection()
+        if con is None:
+            return None
         cur = con.cursor()
         cur.execute(
             "DELETE FROM main WHERE " + prog_name + " = " + prog_name + ""
@@ -127,45 +136,3 @@ class PostgreInterface:
         )
         con.commit()
         con.close()
-
-
-# метод делит можно сделать на случай. если исправлены все оишбки по программе
-# удаляем все записи сначала из мейна, а потом из прог нейм
-
-
-if __name__ == '__main__':
-
-    SQL = PostgreInterface('test', 'postgres', '1', '127.0.0.1', '5432')
-    # SQL.insert_into_history('1, 2, 5, 5, 2, 1333')
-    # SQL.insert_into_main("5, 1, 2, 1, '{6}'")
-    rows = SQL.get_program_key('barsuk.cpp')
-    print(rows)
-
-
-    # rows = SQL.select_unique_from_main("beawer.cpp")
-    # rows = SQL.select_all_from_main()
-
-    def show():
-        print("-" * 80)
-        for row in rows:  # идем по кортежу
-            for i in range(len(rows[0])):  # идем по списку в кортеже
-                val = row[i]
-                if type(val) == str:
-                    print('{:<16}'.format(val.strip()), end='')
-                elif val == 'None':
-                    print('None', end='')
-                else:
-                    print('{:<8}'.format(val), end='')
-            print()
-        print("-" * 80)
-        print("Selection done successfully")
-
-# show()
-# select_all('error_num')
-# select_all('error_stat')
-# select_all('error_importance')
-# select_all('prog_name')
-# select_all('main')
-# select_all_inner()
-
-
